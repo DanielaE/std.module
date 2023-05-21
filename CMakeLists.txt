@@ -16,7 +16,7 @@ set(CXX_STANDARD_REQUIRED ON)
 
 add_library(std STATIC)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 # Clang requires a horrible hack using invalid C++ syntax
   set(pmif std.cppm)
 # libstdc++ is required because libc++
@@ -25,19 +25,30 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(std-library libstdc++)
 # libstdc++ has a buggy implementation of std::ranges in C++23 mode
   set(CMAKE_CXX_STANDARD 20)
-  target_compile_features(std PUBLIC cxx_std_20)
 # I do mean C++20
-  set(std-lang-additional -fsized-deallocation)
+  set(std-lang-additional -fsized-deallocation -faligned-allocation -fchar8_t)
 # the TBB of libstdc++ is not importable
   set(std-lib-additional -D_PSTL_PAR_BACKEND_SERIAL)
 # libstdc++ has no support for a C++23 module 'std'
 # fall back to emulation, don't define _BUILD_STD_MODULE
+  set(emulated ON)
+
+elseif (MSVC)
+# enable using a custom standard library
+#  target_include_directories(std BEFORE PRIVATE
+#    ${CMAKE_CURRENT_SOURCE_DIR}/include
+#    ${CMAKE_CURRENT_SOURCE_DIR}/../include
+#  )
+  set(CMAKE_CXX_STANDARD 23)
+# I do mean C++23
+  set(std-lang-additional /utf-8 /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)
+  set(pmif std.ixx)
+  set(emulated ON)
 
 else()
 # these are the desired defaults
   set(pmif std.ixx)
-  target_compile_features(std PUBLIC cxx_std_23)
-  target_compile_definitions(std PRIVATE -D_BUILD_STD_MODULE)
+  set(emulated OFF)
 endif()
 
 target_sources(std
@@ -45,41 +56,39 @@ target_sources(std
     FILE_SET modules TYPE CXX_MODULES
       FILES ${pmif}
 )
+target_compile_features(std PUBLIC cxx_std_20)
+set_target_properties(std PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD})
 
-if (MSVC)
+if (emulated)
+  set(allstd-hu ${CMAKE_CURRENT_SOURCE_DIR}/allstd.cpp)
+  if (MSVC)
+    set(allstd-bmi ${CMAKE_CURRENT_BINARY_DIR}/allstd.ifc)
+  elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(allstd-bmi ${CMAKE_CURRENT_BINARY_DIR}/allstd.pcm)
+  else()
+    message(FATAL_ERROR "Sorry, unsupported compiler!")
+  endif()
 
-# right, but please don't complain about #includes in the module purview
-target_compile_options(std PRIVATE /wd5244)
-# enable using a custom standard library
-target_include_directories(std BEFORE PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../include
-)
+  add_subdirectory(allstd)
 
-elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  if (MSVC)
+    target_link_libraries(std PUBLIC allstd)
+  elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(std
+      PUBLIC ${std-lang-additional} -stdlib=${std-library}
+      PRIVATE -fmodule-file=${allstd-bmi}
+    )
+    set_source_files_properties(${pmif} PROPERTIES OBJECT_DEPENDS ${allstd-bmi})
+  endif()
 
-set(allstd-hu ${CMAKE_CURRENT_SOURCE_DIR}/allstd.hpp)
-set(allstd-bmi ${CMAKE_CURRENT_BINARY_DIR}/allstd.pcm)
+else() # not emulated, true named module
+  target_compile_definitions(std PRIVATE _BUILD_STD_MODULE)
+  if (MSVC)
+  # right, but please don't complain about #includes in the module purview
+    target_compile_options(std PRIVATE /wd5244)
+  endif()
 
-add_library(allstd INTERFACE ${allstd-bmi})
-target_compile_options(allstd INTERFACE -stdlib=${std-library} ${std-lang-additional})
-
-target_compile_options(std
-  PUBLIC ${std-lang-additional}
-  PRIVATE -fmodule-file=${allstd-bmi} -fmodule-output
-)
-target_link_libraries(std PRIVATE allstd)
-
-get_target_property(std-standard std CXX_STANDARD)
-add_custom_command(OUTPUT ${allstd-bmi}
-  COMMAND ${CMAKE_CXX_COMPILER} -std=c++${std-standard} -stdlib=${std-library}
-    ${std-lang-additional} ${std-lib-additional}
-    -fmodule-header ${allstd-hu} -o ${allstd-bmi}
-)
-
-else()
-  message(FATAL_ERROR "Sorry, unsupported compiler!")
-endif()
+endif() #emulated
 
 add_executable(std-test test.cpp)
 target_compile_features(std-test PRIVATE cxx_std_20)

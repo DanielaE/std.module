@@ -29,6 +29,6 @@ export module std;
 
 #else
 
-export import "allstd.hpp";
+export import "allstd.cpp";
 
 #endif

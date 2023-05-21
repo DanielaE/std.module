@@ -26,14 +26,36 @@ auto start_lifetime_as(const void * Bytes) noexcept -> const T * {
 #endif
 
 #ifndef __cpp_lib_print
+#ifdef _WIN32
+extern "C" {
+    __declspec(dllimport) intptr_t __stdcall _get_osfhandle(int);
+    __declspec(dllimport) int __stdcall WriteConsoleW(intptr_t, const wchar_t*, uint32_t, void*, void*);
+    __declspec(dllimport) int __stdcall MultiByteToWideChar(uint32_t, uint32_t, const char*, int, wchar_t*, int);
+}
+#endif
 namespace std {
 
 EXPORT
 template <typename... T>
 void println(std::format_string<T...> fmt, T&&... args) {
-  auto text = std::format(fmt, std::forward<T>(args)...);
-  text.push_back('\n');
-  std::fwrite(text.data(), sizeof(char), text.size(), stdout);
+    auto _Text = std::format(fmt, std::forward<T>(args)...);
+    _Text.push_back('\n');
+#ifdef _WIN32
+    constexpr auto CP_UTF8 = 65001;
+    const int32_t _Required =
+        ::MultiByteToWideChar(CP_UTF8, 0,
+            _Text.data(), static_cast<int>(_Text.size()),
+            nullptr, 0);
+    std::wstring _WText(_Required, L'\0');
+    ::MultiByteToWideChar(CP_UTF8, 0,
+        _Text.data(), static_cast<int>(_Text.size()),
+        _WText.data(), static_cast<int>(_WText.size()));
+    ::WriteConsoleW(_get_osfhandle(_fileno(stdout)),
+        _WText.data(), static_cast<uint32_t>(_WText.size()),
+        nullptr, nullptr);
+#else
+    std::fwrite(_Text.data(), sizeof(char), _Text.size(), stdout);
+#endif
 }
 
 } // namespace std

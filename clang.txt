@@ -1,8 +1,0 @@
-clang++ -std=c++20 -stdlib=libc++ -fexperimental-library -fmodule-header allstd.hpp -o allstd.pcm
-clang++ -std=c++20 -stdlib=libc++ -fexperimental-library -fmodule-file=allstd.pcm -fmodule-output=std.pcm -c std.cppm
-
--fsized-deallocation
--D_PSTL_PAR_BACKEND_SERIAL 
-
-clang++ -std=c++20 -stdlib=libstdc++ -fsized-deallocation -D_PSTL_PAR_BACKEND_SERIAL -fmodule-header allstd.hpp -o allstd.pcm
-clang++ -std=c++20 -stdlib=libstdc++ -fsized-deallocation -fmodule-file=allstd.pcm -fmodule-output=std.pcm -c std.cppm
