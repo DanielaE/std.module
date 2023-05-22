@@ -14,7 +14,11 @@ set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CXX_STANDARD_REQUIRED ON)
 
+option(USE_EMULATION "use emulation of module 'std' instead of the library-provided one" OFF)
+
 add_library(std STATIC)
+# the default PMIF is 'std.ixx'
+set(pmif std.ixx)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 # Clang requires a horrible hack using invalid C++ syntax
@@ -22,33 +26,21 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 # libstdc++ is required because libc++
 #  - is not even at C++17
 #  - is lacking essential C++20 features
-  set(std-library libstdc++)
-# libstdc++ has a buggy implementation of std::ranges in C++23 mode
-  set(CMAKE_CXX_STANDARD 20)
+# but
+#  - Clang 16 has a bugs affecting the implementation of std::ranges in C++23 mode
+#    apply the patch to deal with them!
+set(std-library libstdc++)
 # I do mean C++20
   set(std-lang-additional -fsized-deallocation -faligned-allocation -fchar8_t)
 # the TBB of libstdc++ is not importable
   set(std-lib-additional -D_PSTL_PAR_BACKEND_SERIAL)
 # libstdc++ has no support for a C++23 module 'std'
 # fall back to emulation, don't define _BUILD_STD_MODULE
-  set(emulated ON)
-
+  set(USE_EMULATION ON)  
 elseif (MSVC)
-# enable using a custom standard library
-#  target_include_directories(std BEFORE PRIVATE
-#    ${CMAKE_CURRENT_SOURCE_DIR}/include
-#    ${CMAKE_CURRENT_SOURCE_DIR}/../include
-#  )
-  set(CMAKE_CXX_STANDARD 23)
 # I do mean C++23
   set(std-lang-additional /utf-8 /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)
-  set(pmif std.ixx)
-  set(emulated ON)
-
-else()
-# these are the desired defaults
-  set(pmif std.ixx)
-  set(emulated OFF)
+  set(USE_EMULATION ON)  
 endif()
 
 target_sources(std
@@ -56,10 +48,9 @@ target_sources(std
     FILE_SET modules TYPE CXX_MODULES
       FILES ${pmif}
 )
-target_compile_features(std PUBLIC cxx_std_20)
-set_target_properties(std PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD})
+target_compile_features(std PUBLIC cxx_std_23)
 
-if (emulated)
+if (USE_EMULATION)
   set(allstd-hu ${CMAKE_CURRENT_SOURCE_DIR}/allstd.cpp)
   if (MSVC)
     set(allstd-bmi ${CMAKE_CURRENT_BINARY_DIR}/allstd.ifc)

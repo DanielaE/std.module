@@ -4,7 +4,8 @@ unset(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API)
 unset(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP)
 
 add_library(allstd OBJECT ${allstd-hu})
-set_target_properties(allstd PROPERTIES CXX_STANDARD ${CMAKE_CXX_STANDARD})
+get_target_property(standard std CXX_STANDARD)
+set_target_properties(allstd PROPERTIES CXX_STANDARD ${standard})
 target_compile_features(allstd PUBLIC cxx_std_20)
 if (MSVC)
   target_compile_options(allstd
