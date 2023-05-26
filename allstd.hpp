@@ -21,7 +21,7 @@
 #include <deque>
 #include <exception>
 #include <execution>
-#include <expected>
+// see below #include <expected>
 #include <filesystem>
 #include <format>
 #include <forward_list>
@@ -118,3 +118,13 @@
  or not defined(__cpp_lib_generator)
 #   include "polyfill.hpp"
 #endif
+
+#if defined(__clang_major__) && __clang_major__ == 16
+// Clang 16.0 has P0848 but doesn't advertise it
+// libstdc++ gates std::expected on __cpp_concepts from P2493
+# if __cpp_concepts < 202202L
+#   undef __cpp_concepts
+#   define __cpp_concepts 202202L
+# endif
+#endif
+#include <expected>
