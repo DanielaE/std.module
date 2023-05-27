@@ -21,7 +21,9 @@
 #include <deque>
 #include <exception>
 #include <execution>
-// see below #include <expected>
+#if !defined(__clang_major__) || __clang_major__ != 16
+#   include <expected>
+#endif
 #include <filesystem>
 #include <format>
 #include <forward_list>
@@ -56,7 +58,11 @@
 #endif
 #include <queue>
 #include <random>
-#include <ranges>
+#if defined(__clang_major__) && __clang_major__ == 16
+#   include "libstdc++-ranges-13.1-for-Clang16.0-bugs"
+#else
+#   include <ranges>
+#endif
 #include <ratio>
 #include <regex>
 #include <scoped_allocator>
