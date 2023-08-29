@@ -30,7 +30,7 @@ auto start_lifetime_as(const void * Bytes) noexcept -> const T * {
 } // namespace std
 #endif
 
-#ifndef __cpp_lib_print
+#if !(defined(__cpp_lib_print) || __has_include(<print>))
 #ifdef _WIN32
 extern "C" {
     __declspec(dllimport) intptr_t __stdcall _get_osfhandle(int);

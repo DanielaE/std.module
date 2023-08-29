@@ -71,17 +71,23 @@
 #include <shared_mutex>
 #include <source_location>
 #include <span>
-#include <spanstream>
+#if __has_include(<spanstream>)
+#   include <spanstream>
+#endif
 #include <sstream>
 #include <stack>
-#include <stacktrace>
+#if __has_include(<stacktrace>)
+#   include <stacktrace>
+#endif
 #include <stdexcept>
 #include <stop_token>
 #include <streambuf>
 #include <string>
 #include <string_view>
 // #include <strstream> deprecated in C++98!  
-#include <syncstream>
+#if __has_include(<syncstream>)
+#   include <syncstream>
+#endif
 #include <system_error>
 #include <thread>
 #include <tuple>

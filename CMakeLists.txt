@@ -25,20 +25,10 @@ add_library(std STATIC)
 set(pmif std.ixx)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-# Clang requires a horrible hack using invalid C++ syntax
-  set(pmif std.cppm)
-# libstdc++ is required because libc++
-#  - is not even at C++17
-#  - is lacking essential C++20 features
-# but
-#  - Clang 16 has a bugs affecting the implementation of std::ranges in C++23 mode
-#    apply the patch to deal with them!
-set(std-library libstdc++)
+set(std-library libc++)
 # I do mean C++20
   set(std-lang-additional -fsized-deallocation -faligned-allocation -fchar8_t)
-# the TBB of libstdc++ is not importable
-  set(std-lib-additional -D_PSTL_PAR_BACKEND_SERIAL)
-# libstdc++ has no support for a C++23 module 'std'
+# libc++ has no support for a C++23 module 'std'
 # fall back to emulation, don't define _BUILD_STD_MODULE
   set(USE_EMULATION ON)  
 elseif (MSVC)
@@ -71,7 +61,7 @@ if (USE_EMULATION)
   elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(std
       PUBLIC ${std-lang-additional} -stdlib=${std-library}
-      PRIVATE -fmodule-file=${allstd-bmi}
+      PRIVATE  -Wno-reserved-module-identifier -Wno-experimental-header-units -fmodule-file=${allstd-bmi}
     )
     set_source_files_properties(${pmif} PROPERTIES OBJECT_DEPENDS ${allstd-bmi})
   endif()
@@ -87,4 +77,4 @@ endif() #emulated
 
 add_executable(std-test test.cpp)
 target_compile_features(std-test PRIVATE cxx_std_20)
-target_link_libraries(std-test PRIVATE std)
+target_link_libraries(std-test PRIVATE std c++)
