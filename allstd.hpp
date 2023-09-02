@@ -21,7 +21,7 @@
 #include <deque>
 #include <exception>
 #include <execution>
-#if !defined(__clang_major__) || __clang_major__ != 16
+#if !defined(__GLIBCXX__) or !defined(__clang_major__) or __clang_major__ > 17
 #   include <expected>
 #endif
 #include <filesystem>
@@ -58,7 +58,7 @@
 #endif
 #include <queue>
 #include <random>
-#if defined(__clang_major__) && __clang_major__ == 16
+#if defined(__GLIBCXX__) and defined(__clang_major__) and __clang_major__ == 16
 #   include "libstdc++-ranges-13.1-for-Clang16.0-bugs"
 #else
 #   include <ranges>
@@ -131,7 +131,7 @@
 #   include "polyfill.hpp"
 #endif
 
-#if defined(__clang_major__) && __clang_major__ == 16
+#if defined(__GLIBCXX__) and defined(__clang_major__) and __clang_major__ <= 17
 // Clang 16.0 has P0848 but doesn't advertise it
 // libstdc++ gates std::expected on __cpp_concepts from P2493
 # if __cpp_concepts < 202202L

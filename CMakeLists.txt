@@ -25,14 +25,25 @@ add_library(std STATIC)
 set(pmif std.ixx)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-set(std-library libc++)
+  if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
+  # Clang 16 requires a horrible hack using invalid C++ syntax
+    set(pmif std.cppm)
+  # libstdc++ is required because libc++
+  #  - is not even at C++17
+  #  - is lacking essential C++20 features
+  # but
+  #  - Clang 16 has a bugs affecting the implementation of std::ranges in C++23 mode
+  #    apply the patch to deal with them!
+  #  - the TBB of libstdc++ is not importable
+    set(std-lib-additional -D_PSTL_PAR_BACKEND_SERIAL)
+  endif()
 # I do mean C++20
   set(std-lang-additional -fsized-deallocation -faligned-allocation -fchar8_t)
-# libc++ has no support for a C++23 module 'std'
+# libstdc++/libc++ has no support for a C++23 module 'std'
 # fall back to emulation, don't define _BUILD_STD_MODULE
   set(USE_EMULATION ON)  
 elseif (MSVC)
-# I do mean C++23
+# I do mean C++20
   set(std-lang-additional /utf-8 /Zc:__cplusplus /Zc:throwingNew /Zc:inline /Zc:externConstexpr /Zc:templateScope /Zc:checkGwOdr /Zc:enumTypes)
   set(USE_EMULATION ON)  
 endif()
@@ -60,10 +71,15 @@ if (USE_EMULATION)
     target_link_libraries(std PUBLIC allstd)
   elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_compile_options(std
-      PUBLIC ${std-lang-additional} -stdlib=${std-library}
-      PRIVATE  -Wno-reserved-module-identifier -Wno-experimental-header-units -fmodule-file=${allstd-bmi}
+      PUBLIC ${std-lang-additional}
+      PRIVATE -fmodule-file=${allstd-bmi}
     )
-    set_source_files_properties(${pmif} PROPERTIES OBJECT_DEPENDS ${allstd-bmi})
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 17)
+      target_compile_options(std
+        PRIVATE -Wno-reserved-module-identifier -Wno-experimental-header-units
+    )
+    endif()
+  set_source_files_properties(${pmif} PROPERTIES OBJECT_DEPENDS ${allstd-bmi})
   endif()
 
 else() # not emulated, true named module
@@ -77,4 +93,4 @@ endif() #emulated
 
 add_executable(std-test test.cpp)
 target_compile_features(std-test PRIVATE cxx_std_20)
-target_link_libraries(std-test PRIVATE std c++)
+target_link_libraries(std-test PRIVATE std)

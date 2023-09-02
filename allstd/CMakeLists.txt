@@ -15,8 +15,8 @@ if (MSVC)
   )
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   target_compile_options(allstd
-    PUBLIC ${std-lang-additional} -stdlib=${std-library}
-    PRIVATE ${std-lib-additional} -xc++-user-header --precompile
+    PUBLIC ${std-lang-additional}
+    PRIVATE ${std-lib-additional} -Wno-builtin-macro-redefined -xc++-system-header --precompile
   )
   add_custom_target(copyBMI
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_OBJECTS:allstd> ${allstd-bmi}
