@@ -38,7 +38,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(std-lib-additional -D_PSTL_PAR_BACKEND_SERIAL)
   endif()
 # I do mean C++20
-  set(std-lang-additional -fsized-deallocation -faligned-allocation -fchar8_t)
+  set(std-lang-additional -fsized-deallocation -faligned-allocation)
 # libstdc++/libc++ has no support for a C++23 module 'std'
 # fall back to emulation, don't define _BUILD_STD_MODULE
   set(USE_EMULATION ON)  
