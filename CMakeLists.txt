@@ -84,6 +84,7 @@ if (USE_EMULATION)
 
 else() # not emulated, true named module
   target_compile_definitions(std PRIVATE _BUILD_STD_MODULE)
+  target_compile_options(std PUBLIC ${std-lang-additional})
   if (MSVC)
   # right, but please don't complain about #includes in the module purview
     target_compile_options(std PRIVATE /wd5244)
