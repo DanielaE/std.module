@@ -9,12 +9,16 @@ project(std
         LANGUAGES CXX
 )
 
-if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
-  set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "aa1f7df0-828a-4fcd-9afc-2dc80491aca7")
-else ()
-  set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "2182bf5c-ef0d-489a-91da-49dbc3090d2a")
+if (CMAKE_VERSION VERSION_LESS 3.28)
+  if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
+    set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "aa1f7df0-828a-4fcd-9afc-2dc80491aca7")
+  else ()
+    set(CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API "2182bf5c-ef0d-489a-91da-49dbc3090d2a")
+  endif()
+  set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
+else()
+  cmake_policy(VERSION 3.28)
 endif()
-set(CMAKE_EXPERIMENTAL_CXX_MODULE_DYNDEP 1)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CXX_STANDARD_REQUIRED ON)
 
@@ -88,6 +92,7 @@ else() # not emulated, true named module
   if (MSVC)
   # right, but please don't complain about #includes in the module purview
     target_compile_options(std PRIVATE /wd5244)
+    target_include_directories(std BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   endif()
 
 endif() #emulated
@@ -95,3 +100,4 @@ endif() #emulated
 add_executable(std-test test.cpp)
 target_compile_features(std-test PRIVATE cxx_std_20)
 target_link_libraries(std-test PRIVATE std)
+target_include_directories(std-test BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
